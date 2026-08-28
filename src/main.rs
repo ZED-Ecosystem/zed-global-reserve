@@ -1,57 +1,40 @@
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
-pub struct AssetReserve {
-    pub ticker: String,
-    pub total_escrowed: u128,
-    pub pol_yield_accrued: u128,
-}
-
 pub struct SovereignReserveVault {
-    pub reserves: HashMap<String, AssetReserve>,
-    pub is_autonomous_yield_enabled: bool,
-    pub total_pol_fee_accumulated: u128,
+    pub asset_reserves: HashMap<String, u128>,
+    pub total_pol_yield_accumulated: u128,
+    pub is_autonomous_routing_active: bool,
 }
 
 impl SovereignReserveVault {
     pub fn new() -> Self {
         Self {
-            reserves: HashMap::new(),
-            is_autonomous_yield_enabled: true,
-            total_pol_fee_accumulated: 0,
+            asset_reserves: HashMap::new(),
+            total_pol_yield_accumulated: 0,
+            is_autonomous_routing_active: true,
         }
     }
 
-    /// Deposit backing assets (e.g. Gold, Stablecoins, Raw Commodities) into escrow
-    pub fn deposit_backing_asset(&mut self, ticker: &str, amount: u128) {
-        let reserve = self.reserves.entry(ticker.to_string()).or_insert(AssetReserve {
-            ticker: ticker.to_string(),
-            total_escrowed: 0,
-            pol_yield_accrued: 0,
-        });
-        reserve.total_escrowed += amount;
-        println!("[RESERVE DEPOSIT] Deposit: {} units of {}", amount, ticker);
+    pub fn deposit_reserve_asset(&mut self, asset_symbol: &str, amount: u128) {
+        let reserve = self.asset_reserves.entry(asset_symbol.to_string()).or_insert(0);
+        *reserve += amount;
+        println!("[RESERVE DEPOSIT] Deposit: {} units of {}", amount, asset_symbol);
     }
 
-    /// Receive 0.03% POL yield directly from GSwap AMM volume
-    pub fn receive_gswap_pol_fee(&mut self, fee_amount: u128) {
-        self.total_pol_fee_accumulated += fee_amount;
-        println!("[POL YIELD ROUTED] Received {} ZED from GSwap 0.03% POL fee allocation", fee_amount);
+    pub fn receive_pol_fee_yield(&mut self, amount_zed: u128) {
+        self.total_pol_yield_accumulated += amount_zed;
+        println!("[POL YIELD ROUTED] Received {} ℤ from GSwap 0.03% POL fee allocation", amount_zed);
+        println!("Total POL Reserve Yield Accumulated: {} ℤ", self.total_pol_yield_accumulated);
     }
 }
 
 fn main() {
-    println!("=== ZED Sovereign Reserve & POL Vault Engine ===");
+    println!("=== ℤ ZED Sovereign Reserve & POL Vault Engine ===");
     let mut vault = SovereignReserveVault::new();
 
-    // 1. Simulate asset backing escrow deposits
-    vault.deposit_backing_asset("GOLD_TOKEN", 500_000);
-    vault.deposit_backing_asset("USDC", 10_000_000);
+    vault.deposit_reserve_asset("GOLD_TOKEN", 500_000);
+    vault.deposit_reserve_asset("USDC", 10_000_000);
 
-    // 2. Simulate receiving the 30 ZED POL fee generated from your GSwap test swap
-    let pol_fee_from_gswap = 30; // 0.03% from GSwap swap
-    vault.receive_gswap_pol_fee(pol_fee_from_gswap);
-
-    println!("Total POL Reserve Yield Accumulated: {} ZED", vault.total_pol_fee_accumulated);
-    println!("Autonomous Vault Routing Active: {}", vault.is_autonomous_yield_enabled);
+    vault.receive_pol_fee_yield(30);
+    println!("Autonomous Vault Routing Active: {}", vault.is_autonomous_routing_active);
 }
